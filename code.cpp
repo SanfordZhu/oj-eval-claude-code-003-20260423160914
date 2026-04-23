@@ -84,7 +84,7 @@ void print_scoreboard() {
                 cout << " .";
             } else {
                 const ProblemStatus& ps = it->second;
-                if (ps.frozen) {
+                if (ps.frozen && ps.submissions_after_freeze > 0) {
                     if (ps.wrong_before == 0)
                         cout << " 0/" << ps.submissions_after_freeze;
                     else
@@ -125,7 +125,7 @@ void unfreeze_problem(const string& team_name, char problem) {
 
     if (ps.solved) return;
 
-    int total_wrong = ps.wrong_before;
+    int total_wrong = ps.wrong_before + ps.submissions_after_freeze;
     bool accepted = false;
     int accept_time = 0;
 
@@ -135,8 +135,6 @@ void unfreeze_problem(const string& team_name, char problem) {
                 accepted = true;
                 accept_time = sub.time;
                 break;
-            } else {
-                total_wrong++;
             }
         }
     }
@@ -145,7 +143,7 @@ void unfreeze_problem(const string& team_name, char problem) {
         ps.solved = true;
         ps.solved_time = accept_time;
         t.solved_count++;
-        t.penalty += 20 * ps.wrong_before + accept_time;
+        t.penalty += 20 * total_wrong + accept_time;
         t.solve_times.push_back(accept_time);
         sort(t.solve_times.rbegin(), t.solve_times.rend());
     }
