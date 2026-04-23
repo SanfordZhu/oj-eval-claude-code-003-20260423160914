@@ -44,11 +44,10 @@ bool compare_teams(const string& a, const string& b) {
         return ta.penalty < tb.penalty;
     const vector<int>& sta = ta.solve_times;
     const vector<int>& stb = tb.solve_times;
-    for (size_t i = 0; i < max(sta.size(), stb.size()); i++) {
-        int ta_time = (i < sta.size()) ? sta[i] : 0;
-        int tb_time = (i < stb.size()) ? stb[i] : 0;
-        if (ta_time != tb_time)
-            return ta_time < tb_time;
+    size_t n = min(sta.size(), stb.size());
+    for (size_t i = 0; i < n; i++) {
+        if (sta[i] != stb[i])
+            return sta[i] < stb[i];
     }
     return a < b;
 }
