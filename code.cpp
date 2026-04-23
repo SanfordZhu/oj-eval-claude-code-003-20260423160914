@@ -19,6 +19,7 @@ struct Team {
     string name;
     map<char, ProblemStatus> problems;
     vector<Submission> submissions;
+    vector<int> solve_times;
     int solved_count = 0;
     int penalty = 0;
     int rank = 0;
@@ -40,20 +41,11 @@ bool compare_teams(const string& a, const string& b) {
         return ta.solved_count > tb.solved_count;
     if (ta.penalty != tb.penalty)
         return ta.penalty < tb.penalty;
-    vector<int> solve_times_a, solve_times_b;
-    for (const auto& p : ta.problems) {
-        if (p.second.solved)
-            solve_times_a.push_back(p.second.solved_time);
-    }
-    for (const auto& p : tb.problems) {
-        if (p.second.solved)
-            solve_times_b.push_back(p.second.solved_time);
-    }
-    sort(solve_times_a.rbegin(), solve_times_a.rend());
-    sort(solve_times_b.rbegin(), solve_times_b.rend());
-    for (size_t i = 0; i < max(solve_times_a.size(), solve_times_b.size()); i++) {
-        int ta_time = (i < solve_times_a.size()) ? solve_times_a[i] : 0;
-        int tb_time = (i < solve_times_b.size()) ? solve_times_b[i] : 0;
+    const vector<int>& sta = ta.solve_times;
+    const vector<int>& stb = tb.solve_times;
+    for (size_t i = 0; i < max(sta.size(), stb.size()); i++) {
+        int ta_time = (i < sta.size()) ? sta[i] : 0;
+        int tb_time = (i < stb.size()) ? stb[i] : 0;
         if (ta_time != tb_time)
             return ta_time < tb_time;
     }
@@ -68,9 +60,21 @@ void calculate_rankings() {
     }
 }
 
+void calculate_rankings_lexicographic() {
+    vector<string> sorted_teams = team_order;
+    sort(sorted_teams.begin(), sorted_teams.end());
+    for (size_t i = 0; i < sorted_teams.size(); i++) {
+        teams[sorted_teams[i]].rank = i + 1;
+    }
+}
+
 void print_scoreboard() {
     vector<string> sorted_teams = team_order;
-    sort(sorted_teams.begin(), sorted_teams.end(), compare_teams);
+    if (flushed) {
+        sort(sorted_teams.begin(), sorted_teams.end(), compare_teams);
+    } else {
+        sort(sorted_teams.begin(), sorted_teams.end());
+    }
     for (const string& name : sorted_teams) {
         const Team& t = teams[name];
         cout << name << " " << t.rank << " " << t.solved_count << " " << t.penalty;
@@ -122,18 +126,28 @@ void unfreeze_problem(const string& team_name, char problem) {
     if (ps.solved) return;
 
     int total_wrong = ps.wrong_before;
+    bool accepted = false;
+    int accept_time = 0;
+
     for (const auto& sub : t.submissions) {
         if (sub.problem == string(1, problem)) {
             if (sub.status == "Accepted") {
-                ps.solved = true;
-                ps.solved_time = sub.time;
-                t.solved_count++;
-                t.penalty += 20 * total_wrong + sub.time;
+                accepted = true;
+                accept_time = sub.time;
                 break;
             } else {
                 total_wrong++;
             }
         }
+    }
+
+    if (accepted) {
+        ps.solved = true;
+        ps.solved_time = accept_time;
+        t.solved_count++;
+        t.penalty += 20 * ps.wrong_before + accept_time;
+        t.solve_times.push_back(accept_time);
+        sort(t.solve_times.rbegin(), t.solve_times.rend());
     }
 }
 
@@ -219,6 +233,7 @@ int main() {
                 cout << "[Error]Start failed: competition has started.\n";
             } else {
                 competition_started = true;
+                calculate_rankings_lexicographic();
                 cout << "[Info]Competition starts.\n";
             }
         } else if (cmd == "SUBMIT") {
@@ -241,6 +256,8 @@ int main() {
                     ps.solved_time = time;
                     t.solved_count++;
                     t.penalty += 20 * ps.wrong_before + time;
+                    t.solve_times.push_back(time);
+                    sort(t.solve_times.rbegin(), t.solve_times.rend());
                 } else {
                     ps.wrong_before++;
                 }
