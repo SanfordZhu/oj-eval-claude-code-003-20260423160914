@@ -32,6 +32,7 @@ bool frozen = false;
 int freeze_time = 0;
 map<string, Team> teams;
 vector<string> team_order;
+vector<string> sorted_teams;
 bool flushed = false;
 
 bool compare_teams(const string& a, const string& b) {
@@ -53,7 +54,6 @@ bool compare_teams(const string& a, const string& b) {
 }
 
 void calculate_rankings() {
-    vector<string> sorted_teams = team_order;
     sort(sorted_teams.begin(), sorted_teams.end(), compare_teams);
     for (size_t i = 0; i < sorted_teams.size(); i++) {
         teams[sorted_teams[i]].rank = i + 1;
@@ -61,7 +61,6 @@ void calculate_rankings() {
 }
 
 void calculate_rankings_lexicographic() {
-    vector<string> sorted_teams = team_order;
     sort(sorted_teams.begin(), sorted_teams.end());
     for (size_t i = 0; i < sorted_teams.size(); i++) {
         teams[sorted_teams[i]].rank = i + 1;
@@ -69,12 +68,6 @@ void calculate_rankings_lexicographic() {
 }
 
 void print_scoreboard() {
-    vector<string> sorted_teams = team_order;
-    if (flushed) {
-        sort(sorted_teams.begin(), sorted_teams.end(), compare_teams);
-    } else {
-        sort(sorted_teams.begin(), sorted_teams.end());
-    }
     for (const string& name : sorted_teams) {
         const Team& t = teams[name];
         cout << name << " " << t.rank << " " << t.solved_count << " " << t.penalty;
@@ -155,9 +148,6 @@ void do_scroll() {
     print_scoreboard();
 
     while (true) {
-        vector<string> sorted_teams = team_order;
-        sort(sorted_teams.begin(), sorted_teams.end(), compare_teams);
-
         string target_team;
         char target_problem = 'Z' + 1;
 
@@ -182,9 +172,7 @@ void do_scroll() {
         int new_rank = teams[target_team].rank;
 
         if (new_rank < old_rank) {
-            vector<string> sorted_after = team_order;
-            sort(sorted_after.begin(), sorted_after.end(), compare_teams);
-            string displaced_team = sorted_after[old_rank - 1];
+            string displaced_team = sorted_teams[old_rank - 1];
             cout << target_team << " " << displaced_team << " "
                  << teams[target_team].solved_count << " " << teams[target_team].penalty << "\n";
         }
@@ -222,6 +210,7 @@ int main() {
             } else {
                 teams[team_name].name = team_name;
                 team_order.push_back(team_name);
+                sorted_teams.push_back(team_name);
                 cout << "[Info]Add successfully.\n";
             }
         } else if (cmd == "START") {
